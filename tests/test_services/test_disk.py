@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from collections import namedtuple
+from io import StringIO
 from unittest.mock import patch
+
+from rich.console import Console
 
 from plexbud.config import Config, PathsConfig
 from plexbud.models import DiskInfo
+from plexbud.output import render_disk_header, render_disk_plain
 from plexbud.services.disk import get_disk_usage
 
 _Usage = namedtuple("usage", ["total", "used", "free"])
@@ -139,3 +143,62 @@ class TestGetDiskUsage:
             result = get_disk_usage(config)
 
         assert len(result) == 1
+
+
+class TestRenderDiskHeader:
+    """Test Rich disk header rendering."""
+
+    def _make_info(self, percent: float) -> DiskInfo:
+        total = 2_000_000_000_000
+        used = int(total * percent / 100)
+        return DiskInfo(
+            path="/volume1/media",
+            total_bytes=total,
+            used_bytes=used,
+            free_bytes=total - used,
+        )
+
+    def test_renders_bar_with_green(self) -> None:
+        buf = StringIO()
+        console = Console(file=buf, force_terminal=True, width=120)
+        render_disk_header([self._make_info(50)], console=console)
+        output = buf.getvalue()
+        assert "/volume1/media" in output
+        assert "50%" in output
+
+    def test_renders_bar_with_yellow(self) -> None:
+        buf = StringIO()
+        console = Console(file=buf, force_terminal=True, width=120)
+        render_disk_header([self._make_info(70)], console=console)
+        output = buf.getvalue()
+        assert "70%" in output
+
+    def test_renders_bar_with_red(self) -> None:
+        buf = StringIO()
+        console = Console(file=buf, force_terminal=True, width=120)
+        render_disk_header([self._make_info(85)], console=console)
+        output = buf.getvalue()
+        assert "85%" in output
+
+    def test_empty_list_renders_nothing(self) -> None:
+        buf = StringIO()
+        console = Console(file=buf, force_terminal=True, width=120)
+        render_disk_header([], console=console)
+        assert buf.getvalue() == ""
+
+
+class TestRenderDiskPlain:
+    """Test plain/TSV disk output."""
+
+    def test_plain_output(self) -> None:
+        info = DiskInfo(
+            path="/volume1/media",
+            total_bytes=2_000_000_000_000,
+            used_bytes=1_600_000_000_000,
+            free_bytes=400_000_000_000,
+        )
+        output = render_disk_plain([info])
+        lines = output.strip().split("\n")
+        assert len(lines) == 2  # header + 1 row
+        assert "Path" in lines[0]
+        assert "/volume1/media" in lines[1]

@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Tools
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Worktrees
+.worktrees/
+
+# Config (contains API keys)
+config.toml

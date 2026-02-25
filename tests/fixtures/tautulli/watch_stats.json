@@ -1,0 +1,11 @@
+[
+  {"rating_key": 1001, "watch_count_30d": 0, "watch_count_all": 15},
+  {"rating_key": 1002, "watch_count_30d": 8, "watch_count_all": 245},
+  {"rating_key": 1003, "watch_count_30d": 5, "watch_count_all": 12},
+  {"rating_key": 1004, "watch_count_30d": 0, "watch_count_all": 3},
+  {"rating_key": 1005, "watch_count_30d": 3, "watch_count_all": 10},
+  {"rating_key": 2001, "watch_count_30d": 1, "watch_count_all": 6},
+  {"rating_key": 2002, "watch_count_30d": 0, "watch_count_all": 4},
+  {"rating_key": 2003, "watch_count_30d": 2, "watch_count_all": 3},
+  {"rating_key": 2004, "watch_count_30d": 0, "watch_count_all": 1}
+]

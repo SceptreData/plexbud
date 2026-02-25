@@ -1,0 +1,20 @@
+[
+  {
+    "hash": "abc123def456",
+    "name": "Breaking.Bad.S01-S05.BluRay.1080p",
+    "save_path": "/volume1/data/torrents/tv/",
+    "size": 45426483200
+  },
+  {
+    "hash": "789ghi012jkl",
+    "name": "Interstellar.2014.UHD.BluRay.2160p",
+    "save_path": "/volume1/data/torrents/movies/",
+    "size": 32212254720
+  },
+  {
+    "hash": "mno345pqr678",
+    "name": "Silo.S01-S02.1080p.WEB-DL",
+    "save_path": "/volume1/data/torrents/tv/",
+    "size": 28991029248
+  }
+]

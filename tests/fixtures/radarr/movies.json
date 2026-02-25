@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "title": "Interstellar",
+    "tmdbId": 157336,
+    "path": "/volume1/data/media/movies/Interstellar (2014)",
+    "added": "2023-03-20T10:00:00Z",
+    "sizeOnDisk": 32212254720
+  },
+  {
+    "id": 2,
+    "title": "The Shawshank Redemption",
+    "tmdbId": 278,
+    "path": "/volume1/data/media/movies/The Shawshank Redemption (1994)",
+    "added": "2022-12-01T08:00:00Z",
+    "sizeOnDisk": 16106127360
+  },
+  {
+    "id": 3,
+    "title": "Oppenheimer",
+    "tmdbId": 872585,
+    "path": "/volume1/data/media/movies/Oppenheimer (2023)",
+    "added": "2025-10-01T14:00:00Z",
+    "sizeOnDisk": 42949672960
+  },
+  {
+    "id": 4,
+    "title": "The Room",
+    "tmdbId": 9297,
+    "path": "/volume1/data/media/movies/The Room (2003)",
+    "added": "2024-01-15T20:00:00Z",
+    "sizeOnDisk": 1073741824
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "title": "Breaking Bad",
+    "tvdbId": 81189,
+    "path": "/volume1/data/media/tv/Breaking Bad",
+    "added": "2023-01-15T10:30:00Z",
+    "statistics": {
+      "sizeOnDisk": 45426483200,
+      "episodeFileCount": 62,
+      "episodeCount": 62
+    }
+  },
+  {
+    "id": 2,
+    "title": "The Office (US)",
+    "tvdbId": 73244,
+    "path": "/volume1/data/media/tv/The Office (US)",
+    "added": "2022-06-01T08:00:00Z",
+    "statistics": {
+      "sizeOnDisk": 98765432100,
+      "episodeFileCount": 201,
+      "episodeCount": 201
+    }
+  },
+  {
+    "id": 3,
+    "title": "Severance",
+    "tvdbId": 371980,
+    "path": "/volume1/data/media/tv/Severance",
+    "added": "2025-12-01T12:00:00Z",
+    "statistics": {
+      "sizeOnDisk": 32212254720,
+      "episodeFileCount": 19,
+      "episodeCount": 19
+    }
+  },
+  {
+    "id": 4,
+    "title": "Firefly",
+    "tvdbId": 78874,
+    "path": "/volume1/data/media/tv/Firefly",
+    "added": "2024-03-10T14:00:00Z",
+    "statistics": {
+      "sizeOnDisk": 21474836480,
+      "episodeFileCount": 14,
+      "episodeCount": 14
+    }
+  },
+  {
+    "id": 5,
+    "title": "Silo",
+    "tvdbId": 403243,
+    "path": "/volume1/data/media/tv/Silo",
+    "added": "2025-11-15T09:00:00Z",
+    "statistics": {
+      "sizeOnDisk": 28991029248,
+      "episodeFileCount": 20,
+      "episodeCount": 20
+    }
+  }
+]

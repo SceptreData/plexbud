@@ -16,6 +16,7 @@ from plexbud.commands.stats import (
     run_stats,
     stats_app,
 )
+from plexbud.domain_types import MediaType
 
 app = typer.Typer(
     name="plexbud",
@@ -59,32 +60,21 @@ def main(
 
         render_disk_header(disk_infos, console=Console())
 
-    run_stats(
-        "tv",
-        sort=sort,
-        limit=limit,
-        min_size=min_size,
-        hide_added=hide_added,
-        hide_watched=hide_watched,
-        unwatched=unwatched,
-        plain=plain,
-        title="TV Shows",
-        clients=clients,
-        config=config,
-    )
-    run_stats(
-        "movies",
-        sort=sort,
-        limit=limit,
-        min_size=min_size,
-        hide_added=hide_added,
-        hide_watched=hide_watched,
-        unwatched=unwatched,
-        plain=plain,
-        title="Movies",
-        clients=clients,
-        config=config,
-    )
+    media_targets: tuple[tuple[MediaType, str], ...] = (("tv", "TV Shows"), ("movie", "Movies"))
+    for media, title in media_targets:
+        run_stats(
+            media,
+            sort=sort,
+            limit=limit,
+            min_size=min_size,
+            hide_added=hide_added,
+            hide_watched=hide_watched,
+            unwatched=unwatched,
+            plain=plain,
+            title=title,
+            clients=clients,
+            config=config,
+        )
 
 
 if __name__ == "__main__":

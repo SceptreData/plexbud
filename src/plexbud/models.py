@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from plexbud.domain_types import MediaType
+
 
 @dataclass
 class MediaItem:
@@ -16,7 +18,7 @@ class MediaItem:
     path: str
     size_bytes: int
     added: datetime
-    media_type: str  # "tv" or "movie"
+    media_type: MediaType
 
 
 @dataclass
@@ -74,7 +76,7 @@ class StatsRow:
     added: datetime
     location: FileLocation
     deletion_impact: DeletionImpact
-    media_type: str
+    media_type: MediaType
     arr_id: int
     external_id: int
 
@@ -87,7 +89,6 @@ class TorrentInfo:
     name: str
     save_path: str
     size: int
-    content_paths: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -95,7 +96,7 @@ class DeletionPlan:
     """What will be removed when deleting a media item."""
 
     title: str
-    media_type: str
+    media_type: MediaType
     arr_id: int
 
     media_dir: str = ""

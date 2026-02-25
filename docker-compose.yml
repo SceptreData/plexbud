@@ -1,0 +1,8 @@
+services:
+  plexbud:
+    build: .
+    volumes:
+      - /volume1/data:/volume1/data:ro
+      - /volume1/docker/plexbud/config.toml:/root/.config/plexbud/config.toml:ro
+    network_mode: host
+    profiles: [tools]

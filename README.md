@@ -1,9 +1,10 @@
 # plexbud
 
 Darn it all to heck- the plex is full. AGAIN. What to delete? What to keep?
-Is anyone watching any of this junk? Worse, you're probably using hardlinks-
-because you thought you were SMART and of course its better to have files in
-multiple places what could possibly go wrong.
+Is anyone watching any of this junk? 
+
+And because you're SO smart, you're probably using hardlinks.
+why wouldn't you want to scatter the same files all over your filesystem?
 
 
 plexbud is a tool to help in these trying times. What's taking up space? Where
@@ -25,13 +26,13 @@ manually cross-reference four different UIs.
 ```
 plexbud stats tv --sort size --min-size 20GiB
 plexbud stats movies --unwatched 90d --limit 20
-plexbud                                          # both at once, with disk usage
+plexbud # both at once, with disk usage
 ```
 
 **Delete** — Remove a show or movie from *everywhere* in one shot (Sonarr/Radarr, qBittorrent, filesystem):
 
 ```
-plexbud delete tv "that show nobody watches"     # dry-run by default, because mistakes
+plexbud delete tv "that show nobody watches"      # dry-run by default, because mistakes
 plexbud delete tv "that show" --apply             # actually do it
 plexbud delete tv                                 # interactive TUI for the indecisive
 ```
@@ -53,6 +54,8 @@ pip install .
 ```bash
 docker compose run --rm plexbud stats tv
 docker compose run --rm plexbud delete movie
+# It's handy to make an alias for this
+# alias plexbud="docker compose run --rm plexbud"
 ```
 
 The compose file mounts your media volume read-only and your config file. See `docker-compose.yml`.

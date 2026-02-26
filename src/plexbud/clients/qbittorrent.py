@@ -56,12 +56,10 @@ class QBittorrentClient(BaseClient):
     def delete_torrents(self, hashes: list[str], *, delete_files: bool = True) -> None:
         """Delete torrents by hash."""
         self._login()
-        resp = self._post(
+        self._post(
             "/api/v2/torrents/delete",
             data={
                 "hashes": "|".join(hashes),
                 "deleteFiles": str(delete_files).lower(),
             },
         )
-        if resp.status_code != 200:
-            raise APIError(self.service_name, resp.status_code, resp.text[:200])

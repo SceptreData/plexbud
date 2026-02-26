@@ -56,7 +56,10 @@ class BaseClient:
         json: dict[str, object] | None = None,
         headers: dict[str, str] | None = None,
     ) -> httpx.Response:
-        return self._client.post(path, data=data, json=json, headers=headers)
+        resp = self._client.post(path, data=data, json=json, headers=headers)
+        if resp.status_code >= 400:
+            raise APIError(self.service_name, resp.status_code, resp.text[:200])
+        return resp
 
     def _delete(
         self,
@@ -64,7 +67,10 @@ class BaseClient:
         params: dict[str, str | int] | None = None,
         headers: dict[str, str] | None = None,
     ) -> httpx.Response:
-        return self._client.delete(path, params=params, headers=headers)
+        resp = self._client.delete(path, params=params, headers=headers)
+        if resp.status_code >= 400:
+            raise APIError(self.service_name, resp.status_code, resp.text[:200])
+        return resp
 
     def close(self) -> None:
         self._client.close()

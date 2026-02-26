@@ -87,10 +87,10 @@ class ArrClient(BaseClient):
     def _headers(self) -> dict[str, str]:
         return {"X-Api-Key": self._api_key}
 
-    def _arr_delete(self, path: str) -> None:
+    def _arr_delete(self, path: str, *, delete_files: bool = True) -> None:
         """Delete an item from Sonarr/Radarr with standard params."""
         params: dict[str, str | int] = {
-            "deleteFiles": "true",
+            "deleteFiles": str(delete_files).lower(),
             "addImportListExclusion": "true",
         }
         resp = self._delete(path, params=params, headers=self._headers)

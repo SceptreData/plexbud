@@ -121,7 +121,7 @@ def scan_file_locations(
 
 
 def calculate_deletion_impact(
-    media_path: str,
+    media_path: str,  # noqa: ARG001  # kept for API compat
     location: FileLocation,
 ) -> DeletionImpact:
     """Calculate how much space would actually be freed by deleting this item.
@@ -129,11 +129,12 @@ def calculate_deletion_impact(
     Uses inode analysis: space is only freed when ALL hardlinks to an inode
     are removed. If any link survives outside the deletion set, no space
     is freed for that inode.
+
+    Uses location.media_paths directly instead of re-walking media_path.
     """
     impact = DeletionImpact()
-    media_dir = Path(media_path)
 
-    if not media_dir.exists():
+    if not location.media_paths:
         return impact
 
     # Build inode count map from deletion set in a single pass
@@ -149,12 +150,12 @@ def calculate_deletion_impact(
         except OSError:
             continue
 
-    # Analyze each file's inode
+    # Analyze each media file's inode (no re-walk needed)
     seen_inodes: set[tuple[int, int]] = set()
 
-    for f in walk_files(media_dir):
+    for mp in location.media_paths:
         try:
-            stat = f.lstat()
+            stat = os.lstat(mp)
         except OSError:
             continue
 

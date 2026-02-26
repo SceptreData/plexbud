@@ -17,6 +17,12 @@ from plexbud.models import DeletionPlan, MediaItem
 from plexbud.services.hardlinks import collect_inodes, scan_file_locations
 
 
+def _is_under_root(path: str, allowed_roots: list[str]) -> bool:
+    """Check that a path is under one of the allowed root directories."""
+    resolved = Path(path).resolve()
+    return any(resolved.is_relative_to(Path(root).resolve()) for root in allowed_roots)
+
+
 def _safe_size(f: Path) -> int:
     """Get file size, returning 0 if the file vanishes."""
     try:
@@ -93,6 +99,7 @@ def execute_deletion_plan(
     qbt: QBittorrentAPI,
     sonarr: SonarrAPI | None = None,
     radarr: RadarrAPI | None = None,
+    allowed_roots: list[str] | None = None,
 ) -> list[str]:
     """Execute a deletion plan in the correct order.
 
@@ -108,6 +115,9 @@ def execute_deletion_plan(
 
     # 2. Remove usenet leftovers
     for upath in plan.usenet_paths:
+        if allowed_roots and not _is_under_root(upath, allowed_roots):
+            log.append(f"Skipped {upath}: outside allowed roots")
+            continue
         try:
             p = Path(upath)
             if p.is_file():

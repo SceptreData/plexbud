@@ -210,3 +210,19 @@ class TestExecuteDeletionPlan:
         execute_deletion_plan(plan, qbt=qbt)
 
         qbt.delete_torrents.assert_not_called()
+
+    def test_execute_rejects_paths_outside_allowed_roots(self, tmp_path: Path) -> None:
+        qbt = MagicMock()
+        allowed = tmp_path / "allowed"
+        allowed.mkdir()
+        outside_file = tmp_path / "outside" / "file.nzb"
+        outside_file.parent.mkdir()
+        outside_file.write_text("content")
+
+        plan = DeletionPlan(title="Test", media_type="tv", arr_id=1)
+        plan.usenet_paths = [str(outside_file)]
+
+        log = execute_deletion_plan(plan, qbt=qbt, allowed_roots=[str(allowed)])
+
+        assert outside_file.exists()
+        assert any("outside allowed roots" in entry for entry in log)

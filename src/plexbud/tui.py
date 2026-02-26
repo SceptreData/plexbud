@@ -105,6 +105,7 @@ class PlanScreen(Screen[bool]):
             qbt=app.data.clients.qbittorrent,
             sonarr=app.data.clients.sonarr if self.item.media_type == "tv" else None,
             radarr=app.data.clients.radarr if self.item.media_type == "movie" else None,
+            allowed_roots=app.data.config.paths.media_roots + app.data.config.paths.download_roots,
         )
         self._executed = True
         freed = self.plan.estimated_freed_bytes

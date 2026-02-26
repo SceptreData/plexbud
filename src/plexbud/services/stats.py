@@ -18,7 +18,12 @@ def build_stats_rows(
     tautulli: TautulliAPI,
     config: Config,
 ) -> list[StatsRow]:
-    """Build StatsRow list from media items + Tautulli data."""
+    """Build StatsRow list from media items + Tautulli data.
+
+    Note: Makes 2 Tautulli API calls per matched item (get_watch_stats +
+    get_last_watched). Tautulli has no batch endpoint, so this is the
+    minimum possible. For 200 items, that's ~400 API calls.
+    """
     rows: list[StatsRow] = []
 
     # Pre-scan download roots once to avoid O(items * files) walks

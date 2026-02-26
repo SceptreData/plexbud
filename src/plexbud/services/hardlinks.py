@@ -13,7 +13,7 @@ def walk_files(directory: Path) -> list[Path]:
     files: list[Path] = []
     try:
         for entry in directory.rglob("*"):
-            if entry.is_file():
+            if entry.is_file() and not entry.is_symlink():
                 files.append(entry)
     except OSError:
         pass
@@ -28,7 +28,7 @@ def collect_inodes(path: str) -> set[tuple[int, int]]:
         return inodes
     for f in walk_files(p):
         try:
-            st = f.stat()
+            st = f.lstat()
             inodes.add((st.st_dev, st.st_ino))
         except OSError:
             continue
@@ -57,7 +57,7 @@ def scan_file_locations(
     for f in walk_files(media_dir):
         location.media_paths.append(str(f))
         try:
-            st = f.stat()
+            st = f.lstat()
             media_inodes.add((st.st_dev, st.st_ino))
         except OSError:
             continue
@@ -75,7 +75,7 @@ def scan_file_locations(
             continue
         for f in walk_files(root_dir):
             try:
-                st = f.stat()
+                st = f.lstat()
                 if (st.st_dev, st.st_ino) in media_inodes:
                     target_list.append(str(f))
             except OSError:
@@ -107,7 +107,7 @@ def calculate_deletion_impact(
     )
     for p in all_deletion_paths:
         try:
-            st = os.stat(p)
+            st = os.lstat(p)
             key = (st.st_dev, st.st_ino)
             deletion_inode_counts[key] = deletion_inode_counts.get(key, 0) + 1
         except OSError:
@@ -118,7 +118,7 @@ def calculate_deletion_impact(
 
     for f in walk_files(media_dir):
         try:
-            stat = f.stat()
+            stat = f.lstat()
         except OSError:
             continue
 

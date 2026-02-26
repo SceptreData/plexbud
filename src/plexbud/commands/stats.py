@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, cast
 
 import typer
@@ -156,7 +156,7 @@ def _apply_filters(
     if parsed_sort == "size":
         rows.sort(key=lambda r: r.size_bytes, reverse=True)
     elif parsed_sort == "lastwatched":
-        rows.sort(key=lambda r: r.last_watched or datetime.min, reverse=False)
+        rows.sort(key=lambda r: r.last_watched or datetime.min.replace(tzinfo=UTC), reverse=False)
     else:
         rows.sort(key=lambda r: r.watch_count_30d, reverse=True)
 

@@ -57,7 +57,7 @@ class TestBuildDeletionPlan:
         assert plan.torrent_count == 0
 
     @patch("plexbud.services.deletion._safe_size", return_value=1_000_000)
-    @patch("plexbud.services.deletion.collect_inodes", return_value={12345})
+    @patch("plexbud.services.deletion.collect_inodes", return_value={(1, 12345)})
     @patch("plexbud.services.deletion.scan_file_locations")
     def test_plan_with_media_files(
         self,
@@ -85,7 +85,7 @@ class TestBuildDeletionPlan:
         assert plan.media_file_count == 1
         assert plan.media_dir == str(media_dir)
 
-    @patch("plexbud.services.deletion.collect_inodes", return_value={99999})
+    @patch("plexbud.services.deletion.collect_inodes", return_value={(1, 99999)})
     @patch("plexbud.services.deletion.scan_file_locations")
     def test_plan_finds_matching_torrents(
         self,
@@ -102,8 +102,9 @@ class TestBuildDeletionPlan:
         torrent_dir.mkdir()
         torrent_file = torrent_dir / "episode.mkv"
         torrent_file.write_bytes(b"x" * 100)
-        # Patch stat to return matching inode
+        # Patch stat to return matching (device, inode) pair
         fake_stat = MagicMock()
+        fake_stat.st_dev = 1
         fake_stat.st_ino = 99999
 
         qbt = MagicMock()
@@ -122,6 +123,26 @@ class TestBuildDeletionPlan:
 
         assert plan.torrent_count == 1
         assert "abc123" in plan.torrent_hashes
+
+    @patch("plexbud.services.deletion.collect_inodes", return_value=set())
+    @patch("plexbud.services.deletion.scan_file_locations")
+    def test_plan_warns_on_tautulli_unreachable(
+        self,
+        mock_scan: MagicMock,
+        mock_inodes: MagicMock,
+    ) -> None:
+        mock_scan.return_value = FileLocation()
+        qbt = MagicMock()
+        qbt.get_torrents.return_value = []
+        tautulli = MagicMock()
+        tautulli.get_activity.side_effect = Exception("Connection refused")
+
+        item = _make_item()
+        item.path = "/nonexistent"
+
+        plan = build_deletion_plan(item, qbt=qbt, tautulli=tautulli, config=_mock_config())
+
+        assert any("Tautulli unreachable" in w for w in plan.warnings)
 
     @patch("plexbud.services.deletion.collect_inodes", return_value=set())
     @patch("plexbud.services.deletion.scan_file_locations")
@@ -209,3 +230,47 @@ class TestExecuteDeletionPlan:
         execute_deletion_plan(plan, qbt=qbt)
 
         qbt.delete_torrents.assert_not_called()
+
+    def test_execute_continues_after_qbt_failure(self) -> None:
+        qbt = MagicMock()
+        qbt.delete_torrents.side_effect = Exception("qBt down")
+        sonarr = MagicMock()
+
+        plan = DeletionPlan(title="Test", media_type="tv", arr_id=42)
+        plan.torrent_hashes = ["abc123"]
+        plan.torrent_count = 1
+
+        log = execute_deletion_plan(plan, qbt=qbt, sonarr=sonarr)
+
+        assert any("Failed" in entry and "qBt down" in entry for entry in log)
+        sonarr.delete_series.assert_called_once_with(42)
+
+    def test_execute_continues_after_arr_failure(self) -> None:
+        qbt = MagicMock()
+        sonarr = MagicMock()
+        sonarr.delete_series.side_effect = Exception("Sonarr down")
+
+        plan = DeletionPlan(title="Test", media_type="tv", arr_id=42)
+        plan.torrent_hashes = ["abc123"]
+        plan.torrent_count = 1
+
+        log = execute_deletion_plan(plan, qbt=qbt, sonarr=sonarr)
+
+        assert any("Removed 1 torrent" in entry for entry in log)
+        assert any("Failed" in entry and "Sonarr down" in entry for entry in log)
+
+    def test_execute_rejects_paths_outside_allowed_roots(self, tmp_path: Path) -> None:
+        qbt = MagicMock()
+        allowed = tmp_path / "allowed"
+        allowed.mkdir()
+        outside_file = tmp_path / "outside" / "file.nzb"
+        outside_file.parent.mkdir()
+        outside_file.write_text("content")
+
+        plan = DeletionPlan(title="Test", media_type="tv", arr_id=1)
+        plan.usenet_paths = [str(outside_file)]
+
+        log = execute_deletion_plan(plan, qbt=qbt, allowed_roots=[str(allowed)])
+
+        assert outside_file.exists()
+        assert any("outside allowed roots" in entry for entry in log)

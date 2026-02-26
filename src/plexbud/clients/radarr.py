@@ -33,4 +33,4 @@ class RadarrClient(ArrClient):
 
     def delete_movie(self, movie_id: int, *, delete_files: bool = True) -> None:
         """Delete a movie from Radarr."""
-        self._arr_delete(f"/api/v3/movie/{movie_id}")
+        self._arr_delete(f"/api/v3/movie/{movie_id}", delete_files=delete_files)

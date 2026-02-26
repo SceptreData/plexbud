@@ -117,7 +117,7 @@ def load_config(path: Path | None = None) -> Config:
     if isinstance(raw.get("paths"), dict):
         paths = _build_section(PathsConfig, raw["paths"], "paths")
 
-    return Config(
+    config = Config(
         plex=plex,
         tautulli=tautulli,
         sonarr=sonarr,
@@ -125,3 +125,24 @@ def load_config(path: Path | None = None) -> Config:
         qbittorrent=qbittorrent,
         paths=paths,
     )
+    _validate_config(config)
+    return config
+
+
+def _validate_config(config: Config) -> None:
+    """Check that required config fields are non-empty."""
+    missing: list[str] = []
+    checks: list[tuple[str, str]] = [
+        (config.tautulli.url, "tautulli.url"),
+        (config.tautulli.api_key, "tautulli.api_key"),
+        (config.sonarr.url, "sonarr.url"),
+        (config.sonarr.api_key, "sonarr.api_key"),
+        (config.radarr.url, "radarr.url"),
+        (config.radarr.api_key, "radarr.api_key"),
+        (config.qbittorrent.url, "qbittorrent.url"),
+    ]
+    for value, name in checks:
+        if not value:
+            missing.append(name)
+    if missing:
+        raise ConfigError(f"Missing required config fields: {', '.join(missing)}")

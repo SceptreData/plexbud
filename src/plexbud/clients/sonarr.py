@@ -33,4 +33,4 @@ class SonarrClient(ArrClient):
 
     def delete_series(self, series_id: int, *, delete_files: bool = True) -> None:
         """Delete a series from Sonarr."""
-        self._arr_delete(f"/api/v3/series/{series_id}")
+        self._arr_delete(f"/api/v3/series/{series_id}", delete_files=delete_files)

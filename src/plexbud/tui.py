@@ -60,6 +60,7 @@ class PlanScreen(Screen[bool]):
         self.plan = plan
         self._executed = False
         self._confirm_pending = False
+        self._deleting = False
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -89,8 +90,9 @@ class PlanScreen(Screen[bool]):
         self._confirm_pending = True
 
     def key_d(self) -> None:
-        if self._confirm_pending:
+        if self._confirm_pending and not self._deleting:
             self._confirm_pending = False
+            self._deleting = True
             self._do_delete()
 
     @work(thread=True)
@@ -100,14 +102,28 @@ class PlanScreen(Screen[bool]):
         app = self.app
         assert isinstance(app, DeleteApp)
 
-        log = execute_deletion_plan(
-            self.plan,
-            qbt=app.data.clients.qbittorrent,
-            sonarr=app.data.clients.sonarr if self.item.media_type == "tv" else None,
-            radarr=app.data.clients.radarr if self.item.media_type == "movie" else None,
-        )
+        try:
+            log = execute_deletion_plan(
+                self.plan,
+                qbt=app.data.clients.qbittorrent,
+                sonarr=app.data.clients.sonarr if self.item.media_type == "tv" else None,
+                radarr=app.data.clients.radarr if self.item.media_type == "movie" else None,
+                allowed_roots=(
+                    app.data.config.paths.media_roots + app.data.config.paths.download_roots
+                ),
+            )
+        except Exception as exc:
+            msg = f"Error: {exc}"
+            self.app.call_from_thread(lambda: self.query_one("#status-text", Label).update(msg))
+            return
+
         self._executed = True
         freed = self.plan.estimated_freed_bytes
+
+        for entry in log:
+            self.app.call_from_thread(
+                lambda e=entry: self.query_one("#status-text", Label).update(f"OK: {e}")
+            )
 
         def finish() -> None:
             app.session_reclaimed += freed
@@ -121,10 +137,6 @@ class PlanScreen(Screen[bool]):
             self.dismiss(True)
 
         self.app.call_from_thread(finish)
-        for entry in log:
-            self.app.call_from_thread(
-                lambda e=entry: self.query_one("#status-text", Label).update(f"OK: {e}")
-            )
 
 
 class MainScreen(Screen[None]):

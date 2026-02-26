@@ -77,7 +77,8 @@ def get_library_lookup(clients: Clients, config: Config, media: MediaType) -> di
     section_id = (
         config.tautulli.tv_section_id if media == "tv" else config.tautulli.movie_section_id
     )
-    return clients.tautulli.get_library_media_info(section_id)
+    provider = "tvdb" if media == "tv" else "tmdb"
+    return clients.tautulli.get_library_media_info(section_id, provider=provider)
 
 
 def get_stats_rows_for_media(clients: Clients, config: Config, media: MediaType) -> list[StatsRow]:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import httpx
 
@@ -20,12 +20,12 @@ class APIError(Exception):
 def parse_datetime(s: str) -> datetime:
     """Parse ISO 8601 datetime strings from Sonarr/Radarr APIs."""
     if not s:
-        return datetime(1970, 1, 1)
+        return datetime(1970, 1, 1, tzinfo=UTC)
     s = s.replace("Z", "+00:00")
     try:
         return datetime.fromisoformat(s)
     except ValueError:
-        return datetime(1970, 1, 1)
+        return datetime(1970, 1, 1, tzinfo=UTC)
 
 
 class BaseClient:
@@ -56,7 +56,10 @@ class BaseClient:
         json: dict[str, object] | None = None,
         headers: dict[str, str] | None = None,
     ) -> httpx.Response:
-        return self._client.post(path, data=data, json=json, headers=headers)
+        resp = self._client.post(path, data=data, json=json, headers=headers)
+        if resp.status_code >= 400:
+            raise APIError(self.service_name, resp.status_code, resp.text[:200])
+        return resp
 
     def _delete(
         self,
@@ -64,7 +67,10 @@ class BaseClient:
         params: dict[str, str | int] | None = None,
         headers: dict[str, str] | None = None,
     ) -> httpx.Response:
-        return self._client.delete(path, params=params, headers=headers)
+        resp = self._client.delete(path, params=params, headers=headers)
+        if resp.status_code >= 400:
+            raise APIError(self.service_name, resp.status_code, resp.text[:200])
+        return resp
 
     def close(self) -> None:
         self._client.close()
@@ -81,10 +87,10 @@ class ArrClient(BaseClient):
     def _headers(self) -> dict[str, str]:
         return {"X-Api-Key": self._api_key}
 
-    def _arr_delete(self, path: str) -> None:
+    def _arr_delete(self, path: str, *, delete_files: bool = True) -> None:
         """Delete an item from Sonarr/Radarr with standard params."""
         params: dict[str, str | int] = {
-            "deleteFiles": "true",
+            "deleteFiles": str(delete_files).lower(),
             "addImportListExclusion": "true",
         }
         resp = self._delete(path, params=params, headers=self._headers)

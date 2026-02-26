@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 import os
-import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import httpx
-
-from plexbud.clients.base import APIError
 from plexbud.config import Config
 from plexbud.interfaces import QBittorrentAPI, RadarrAPI, SonarrAPI, TautulliAPI
 from plexbud.models import DeletionPlan, MediaItem
 from plexbud.services.hardlinks import collect_inodes, scan_file_locations
+
+
+def _is_under_root(path: str, allowed_roots: list[str]) -> bool:
+    """Check that a path is under one of the allowed root directories."""
+    resolved = Path(path).resolve()
+    return any(resolved.is_relative_to(Path(root).resolve()) for root in allowed_roots)
 
 
 def _safe_size(f: Path) -> int:
@@ -65,7 +67,8 @@ def build_deletion_plan(
         for tf in torrent_files:
             full_path = torrent_dir / tf
             try:
-                if full_path.stat().st_ino in media_inodes:
+                st = full_path.stat()
+                if (st.st_dev, st.st_ino) in media_inodes:
                     plan.torrent_hashes.append(torrent.hash)
                     plan.torrent_paths.append(str(torrent_dir / tf.split("/")[0]))
                     break
@@ -92,6 +95,7 @@ def execute_deletion_plan(
     qbt: QBittorrentAPI,
     sonarr: SonarrAPI | None = None,
     radarr: RadarrAPI | None = None,
+    allowed_roots: list[str] | None = None,
 ) -> list[str]:
     """Execute a deletion plan in the correct order.
 
@@ -102,29 +106,35 @@ def execute_deletion_plan(
 
     # 1. Remove torrents (stops seeding + removes source copies)
     if plan.torrent_hashes:
-        qbt.delete_torrents(plan.torrent_hashes, delete_files=True)
-        log.append(f"Removed {plan.torrent_count} torrent(s) from qBittorrent")
+        try:
+            qbt.delete_torrents(plan.torrent_hashes, delete_files=True)
+            log.append(f"Removed {plan.torrent_count} torrent(s) from qBittorrent")
+        except Exception as e:
+            log.append(f"Failed to remove torrents from qBittorrent: {e}")
 
     # 2. Remove usenet leftovers
     for upath in plan.usenet_paths:
+        if allowed_roots and not _is_under_root(upath, allowed_roots):
+            log.append(f"Skipped {upath}: outside allowed roots")
+            continue
         try:
             p = Path(upath)
             if p.is_file():
                 os.unlink(upath)
                 log.append(f"Deleted usenet file: {upath}")
-            elif p.is_dir():
-                shutil.rmtree(upath)
-                log.append(f"Deleted usenet directory: {upath}")
         except OSError as e:
             log.append(f"Failed to delete {upath}: {e}")
 
     # 3. Remove from arr (deletes media files + adds exclusion)
-    if plan.media_type == "tv" and sonarr:
-        sonarr.delete_series(plan.arr_id)
-        log.append(f"Deleted series from Sonarr (id={plan.arr_id})")
-    elif plan.media_type == "movie" and radarr:
-        radarr.delete_movie(plan.arr_id)
-        log.append(f"Deleted movie from Radarr (id={plan.arr_id})")
+    try:
+        if plan.media_type == "tv" and sonarr:
+            sonarr.delete_series(plan.arr_id)
+            log.append(f"Deleted series from Sonarr (id={plan.arr_id})")
+        elif plan.media_type == "movie" and radarr:
+            radarr.delete_movie(plan.arr_id)
+            log.append(f"Deleted movie from Radarr (id={plan.arr_id})")
+    except Exception as e:
+        log.append(f"Failed to delete from arr: {e}")
 
     return log
 
@@ -144,8 +154,8 @@ def _check_warnings(
             if item.title in titles:
                 user = session.get("friendly_name", "someone")
                 warnings.append(f'Currently being streamed by user "{user}"')
-    except (APIError, httpx.HTTPError, OSError):
-        pass
+    except Exception:
+        warnings.append("Could not check active streams (Tautulli unreachable)")
 
     # Check if recently added (within 14 days)
     age = datetime.now().astimezone() - item.added.astimezone()

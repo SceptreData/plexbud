@@ -5,6 +5,9 @@ WORKDIR /app
 COPY pyproject.toml .
 COPY src/ src/
 
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir . && \
+    useradd -m -u 1000 plexbud
+
+USER plexbud
 
 ENTRYPOINT ["plexbud"]

@@ -115,6 +115,7 @@ def _delete_item(name: str, media_type: str, *, apply: bool, yes: bool) -> None:
         qbt=clients.qbittorrent,
         sonarr=clients.sonarr if media == "tv" else None,
         radarr=clients.radarr if media == "movie" else None,
+        allowed_roots=config.paths.media_roots + config.paths.download_roots,
     )
     for entry in log:
         console.print(f"  [green]OK[/green] {entry}")

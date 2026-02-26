@@ -46,3 +46,19 @@ class TestExtractExternalIds:
     def test_empty(self) -> None:
         ids = _extract_external_ids("", [])
         assert ids == []
+
+    def test_provider_filter_tvdb(self) -> None:
+        ids = _extract_external_ids("", ["tvdb://81189", "tmdb://1396"], provider="tvdb")
+        assert 81189 in ids
+        assert 1396 not in ids
+
+    def test_provider_filter_tmdb(self) -> None:
+        ids = _extract_external_ids("", ["tvdb://81189", "tmdb://1396"], provider="tmdb")
+        assert 1396 in ids
+        assert 81189 not in ids
+
+    def test_provider_filter_legacy(self) -> None:
+        ids = _extract_external_ids(
+            "com.plexapp.agents.thetvdb://81189?lang=en", [], provider="tvdb"
+        )
+        assert 81189 in ids

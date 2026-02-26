@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from plexbud.clients.base import APIError, BaseClient
 from plexbud.models import TorrentInfo
 
@@ -26,10 +28,21 @@ class QBittorrentClient(BaseClient):
             raise APIError(self.service_name, resp.status_code, "Login failed")
         self._logged_in = True
 
+    def _retry_on_session_expiry[T](self, fn: Callable[[], T]) -> T:
+        """Retry an API call once on 403 (session expired)."""
+        try:
+            return fn()
+        except APIError as e:
+            if e.status_code != 403:
+                raise
+            self._logged_in = False
+            self._login()
+            return fn()
+
     def get_torrents(self) -> list[TorrentInfo]:
         """Fetch all torrents."""
         self._login()
-        data = self._get("/api/v2/torrents/info")
+        data = self._retry_on_session_expiry(lambda: self._get("/api/v2/torrents/info"))
         if not isinstance(data, list):
             return []
 
@@ -48,7 +61,9 @@ class QBittorrentClient(BaseClient):
     def get_torrent_files(self, torrent_hash: str) -> list[str]:
         """Get file paths for a specific torrent."""
         self._login()
-        data = self._get("/api/v2/torrents/files", params={"hash": torrent_hash})
+        data = self._retry_on_session_expiry(
+            lambda: self._get("/api/v2/torrents/files", params={"hash": torrent_hash})
+        )
         if not isinstance(data, list):
             return []
         return [f.get("name", "") for f in data if f.get("name")]
@@ -56,12 +71,12 @@ class QBittorrentClient(BaseClient):
     def delete_torrents(self, hashes: list[str], *, delete_files: bool = True) -> None:
         """Delete torrents by hash."""
         self._login()
-        resp = self._post(
-            "/api/v2/torrents/delete",
-            data={
-                "hashes": "|".join(hashes),
-                "deleteFiles": str(delete_files).lower(),
-            },
+        self._retry_on_session_expiry(
+            lambda: self._post(
+                "/api/v2/torrents/delete",
+                data={
+                    "hashes": "|".join(hashes),
+                    "deleteFiles": str(delete_files).lower(),
+                },
+            )
         )
-        if resp.status_code != 200:
-            raise APIError(self.service_name, resp.status_code, resp.text[:200])

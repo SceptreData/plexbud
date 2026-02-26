@@ -109,8 +109,11 @@ def execute_deletion_plan(
 
     # 1. Remove torrents (stops seeding + removes source copies)
     if plan.torrent_hashes:
-        qbt.delete_torrents(plan.torrent_hashes, delete_files=True)
-        log.append(f"Removed {plan.torrent_count} torrent(s) from qBittorrent")
+        try:
+            qbt.delete_torrents(plan.torrent_hashes, delete_files=True)
+            log.append(f"Removed {plan.torrent_count} torrent(s) from qBittorrent")
+        except Exception as e:
+            log.append(f"Failed to remove torrents from qBittorrent: {e}")
 
     # 2. Remove usenet leftovers
     for upath in plan.usenet_paths:
@@ -126,12 +129,15 @@ def execute_deletion_plan(
             log.append(f"Failed to delete {upath}: {e}")
 
     # 3. Remove from arr (deletes media files + adds exclusion)
-    if plan.media_type == "tv" and sonarr:
-        sonarr.delete_series(plan.arr_id)
-        log.append(f"Deleted series from Sonarr (id={plan.arr_id})")
-    elif plan.media_type == "movie" and radarr:
-        radarr.delete_movie(plan.arr_id)
-        log.append(f"Deleted movie from Radarr (id={plan.arr_id})")
+    try:
+        if plan.media_type == "tv" and sonarr:
+            sonarr.delete_series(plan.arr_id)
+            log.append(f"Deleted series from Sonarr (id={plan.arr_id})")
+        elif plan.media_type == "movie" and radarr:
+            radarr.delete_movie(plan.arr_id)
+            log.append(f"Deleted movie from Radarr (id={plan.arr_id})")
+    except Exception as e:
+        log.append(f"Failed to delete from arr: {e}")
 
     return log
 

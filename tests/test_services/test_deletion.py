@@ -211,6 +211,34 @@ class TestExecuteDeletionPlan:
 
         qbt.delete_torrents.assert_not_called()
 
+    def test_execute_continues_after_qbt_failure(self) -> None:
+        qbt = MagicMock()
+        qbt.delete_torrents.side_effect = Exception("qBt down")
+        sonarr = MagicMock()
+
+        plan = DeletionPlan(title="Test", media_type="tv", arr_id=42)
+        plan.torrent_hashes = ["abc123"]
+        plan.torrent_count = 1
+
+        log = execute_deletion_plan(plan, qbt=qbt, sonarr=sonarr)
+
+        assert any("Failed" in entry and "qBt down" in entry for entry in log)
+        sonarr.delete_series.assert_called_once_with(42)
+
+    def test_execute_continues_after_arr_failure(self) -> None:
+        qbt = MagicMock()
+        sonarr = MagicMock()
+        sonarr.delete_series.side_effect = Exception("Sonarr down")
+
+        plan = DeletionPlan(title="Test", media_type="tv", arr_id=42)
+        plan.torrent_hashes = ["abc123"]
+        plan.torrent_count = 1
+
+        log = execute_deletion_plan(plan, qbt=qbt, sonarr=sonarr)
+
+        assert any("Removed 1 torrent" in entry for entry in log)
+        assert any("Failed" in entry and "Sonarr down" in entry for entry in log)
+
     def test_execute_rejects_paths_outside_allowed_roots(self, tmp_path: Path) -> None:
         qbt = MagicMock()
         allowed = tmp_path / "allowed"

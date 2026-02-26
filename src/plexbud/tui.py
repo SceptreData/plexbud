@@ -100,13 +100,21 @@ class PlanScreen(Screen[bool]):
         app = self.app
         assert isinstance(app, DeleteApp)
 
-        log = execute_deletion_plan(
-            self.plan,
-            qbt=app.data.clients.qbittorrent,
-            sonarr=app.data.clients.sonarr if self.item.media_type == "tv" else None,
-            radarr=app.data.clients.radarr if self.item.media_type == "movie" else None,
-            allowed_roots=app.data.config.paths.media_roots + app.data.config.paths.download_roots,
-        )
+        try:
+            log = execute_deletion_plan(
+                self.plan,
+                qbt=app.data.clients.qbittorrent,
+                sonarr=app.data.clients.sonarr if self.item.media_type == "tv" else None,
+                radarr=app.data.clients.radarr if self.item.media_type == "movie" else None,
+                allowed_roots=(
+                    app.data.config.paths.media_roots + app.data.config.paths.download_roots
+                ),
+            )
+        except Exception as exc:
+            msg = f"Error: {exc}"
+            self.app.call_from_thread(lambda: self.query_one("#status-text", Label).update(msg))
+            return
+
         self._executed = True
         freed = self.plan.estimated_freed_bytes
 

@@ -3,6 +3,6 @@ services:
     build: .
     volumes:
       - ${MEDIA_ROOT}:${MEDIA_ROOT}:ro
-      - ${CONFIG_FILE}:/root/.config/plexbud/config.toml:ro
+      - ${CONFIG_FILE}:/home/plexbud/.config/plexbud/config.toml:ro
     network_mode: host
     profiles: [tools]

@@ -29,7 +29,7 @@ class TautulliClient(BaseClient):
             return data.get("response", {}).get("data", {})
         return data
 
-    def get_library_media_info(self, section_id: int) -> dict[int, int]:
+    def get_library_media_info(self, section_id: int, *, provider: str = "") -> dict[int, int]:
         """Fetch all items in a library and build {external_id: rating_key} lookup.
 
         Works through pagination to get all items.
@@ -56,7 +56,7 @@ class TautulliClient(BaseClient):
                 if not rating_key:
                     continue
 
-                for ext_id in _extract_external_ids(guid, guids):
+                for ext_id in _extract_external_ids(guid, guids, provider=provider):
                     lookup[ext_id] = rating_key
 
             total = int(data.get("recordsTotal", 0)) if isinstance(data, dict) else 0
@@ -119,31 +119,44 @@ class TautulliClient(BaseClient):
         return []
 
 
-def _extract_external_ids(guid: str, guids: list[str]) -> list[int]:
+def _extract_external_ids(guid: str, guids: list[str], *, provider: str = "") -> list[int]:
     """Extract tvdb/tmdb IDs from Plex guid formats.
 
     Handles both legacy and modern formats:
     - Legacy: "com.plexapp.agents.thetvdb://270408?lang=en"
     - Modern guids list: ["tvdb://12345", "tmdb://67890"]
+
+    When provider is set (e.g. "tvdb" or "tmdb"), only match that
+    provider to avoid cross-provider ID collisions.
     """
     ids: list[int] = []
+
+    modern_pattern = rf"(?:{provider})://(\d+)" if provider else r"(?:tvdb|tmdb)://(\d+)"
+
+    # Map modern provider names to legacy agent names
+    legacy_map = {"tvdb": "thetvdb", "tmdb": "themoviedb"}
+    if provider:
+        legacy_name = legacy_map.get(provider, provider)
+        legacy_pattern = rf"(?:{legacy_name})://(\d+)"
+    else:
+        legacy_pattern = r"(?:thetvdb|themoviedb)://(\d+)"
 
     # Modern format: list of "provider://id" strings
     for g in guids:
         if isinstance(g, str):
-            match = re.match(r"(?:tvdb|tmdb)://(\d+)", g)
+            match = re.match(modern_pattern, g)
             if match:
                 ids.append(int(match.group(1)))
         elif isinstance(g, dict):
             # Sometimes guids are dicts like {"id": "tvdb://12345"}
             gid = g.get("id", "")
-            match = re.match(r"(?:tvdb|tmdb)://(\d+)", gid)
+            match = re.match(modern_pattern, gid)
             if match:
                 ids.append(int(match.group(1)))
 
     # Legacy format: agent string with embedded ID
     if guid:
-        match = re.search(r"(?:thetvdb|themoviedb)://(\d+)", guid)
+        match = re.search(legacy_pattern, guid)
         if match:
             ids.append(int(match.group(1)))
 

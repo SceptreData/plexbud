@@ -99,7 +99,7 @@ class MockRadarr:
 class MockTautulli:
     service_name = "Tautulli"
 
-    def get_library_media_info(self, section_id: int) -> dict[int, int]:
+    def get_library_media_info(self, section_id: int, *, provider: str = "") -> dict[int, int]:
         data = _load_fixture("tautulli", f"library_{section_id}")
         lookup: dict[int, int] = {}
         if isinstance(data, dict):

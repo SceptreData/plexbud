@@ -20,15 +20,16 @@ def walk_files(directory: Path) -> list[Path]:
     return files
 
 
-def collect_inodes(path: str) -> set[int]:
-    """Collect all file inodes under a path."""
-    inodes: set[int] = set()
+def collect_inodes(path: str) -> set[tuple[int, int]]:
+    """Collect all file (device, inode) pairs under a path."""
+    inodes: set[tuple[int, int]] = set()
     p = Path(path)
     if not p.exists():
         return inodes
     for f in walk_files(p):
         try:
-            inodes.add(f.stat().st_ino)
+            st = f.stat()
+            inodes.add((st.st_dev, st.st_ino))
         except OSError:
             continue
     return inodes
@@ -52,11 +53,12 @@ def scan_file_locations(
         return location
 
     # Collect inodes from media directory
-    media_inodes: set[int] = set()
+    media_inodes: set[tuple[int, int]] = set()
     for f in walk_files(media_dir):
         location.media_paths.append(str(f))
         try:
-            media_inodes.add(f.stat().st_ino)
+            st = f.stat()
+            media_inodes.add((st.st_dev, st.st_ino))
         except OSError:
             continue
 
@@ -73,7 +75,8 @@ def scan_file_locations(
             continue
         for f in walk_files(root_dir):
             try:
-                if f.stat().st_ino in media_inodes:
+                st = f.stat()
+                if (st.st_dev, st.st_ino) in media_inodes:
                     target_list.append(str(f))
             except OSError:
                 continue
@@ -98,19 +101,20 @@ def calculate_deletion_impact(
         return impact
 
     # Build inode count map from deletion set in a single pass
-    deletion_inode_counts: dict[int, int] = {}
+    deletion_inode_counts: dict[tuple[int, int], int] = {}
     all_deletion_paths = (
         list(location.media_paths) + list(location.torrent_paths) + list(location.usenet_paths)
     )
     for p in all_deletion_paths:
         try:
-            ino = os.stat(p).st_ino
-            deletion_inode_counts[ino] = deletion_inode_counts.get(ino, 0) + 1
+            st = os.stat(p)
+            key = (st.st_dev, st.st_ino)
+            deletion_inode_counts[key] = deletion_inode_counts.get(key, 0) + 1
         except OSError:
             continue
 
     # Analyze each file's inode
-    seen_inodes: set[int] = set()
+    seen_inodes: set[tuple[int, int]] = set()
 
     for f in walk_files(media_dir):
         try:
@@ -118,7 +122,7 @@ def calculate_deletion_impact(
         except OSError:
             continue
 
-        ino = stat.st_ino
+        ino = (stat.st_dev, stat.st_ino)
         if ino in seen_inodes:
             continue
         seen_inodes.add(ino)

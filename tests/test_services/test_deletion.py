@@ -57,7 +57,7 @@ class TestBuildDeletionPlan:
         assert plan.torrent_count == 0
 
     @patch("plexbud.services.deletion._safe_size", return_value=1_000_000)
-    @patch("plexbud.services.deletion.collect_inodes", return_value={12345})
+    @patch("plexbud.services.deletion.collect_inodes", return_value={(1, 12345)})
     @patch("plexbud.services.deletion.scan_file_locations")
     def test_plan_with_media_files(
         self,
@@ -85,7 +85,7 @@ class TestBuildDeletionPlan:
         assert plan.media_file_count == 1
         assert plan.media_dir == str(media_dir)
 
-    @patch("plexbud.services.deletion.collect_inodes", return_value={99999})
+    @patch("plexbud.services.deletion.collect_inodes", return_value={(1, 99999)})
     @patch("plexbud.services.deletion.scan_file_locations")
     def test_plan_finds_matching_torrents(
         self,
@@ -102,8 +102,9 @@ class TestBuildDeletionPlan:
         torrent_dir.mkdir()
         torrent_file = torrent_dir / "episode.mkv"
         torrent_file.write_bytes(b"x" * 100)
-        # Patch stat to return matching inode
+        # Patch stat to return matching (device, inode) pair
         fake_stat = MagicMock()
+        fake_stat.st_dev = 1
         fake_stat.st_ino = 99999
 
         qbt = MagicMock()

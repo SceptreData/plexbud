@@ -65,7 +65,8 @@ def build_deletion_plan(
         for tf in torrent_files:
             full_path = torrent_dir / tf
             try:
-                if full_path.stat().st_ino in media_inodes:
+                st = full_path.stat()
+                if (st.st_dev, st.st_ino) in media_inodes:
                     plan.torrent_hashes.append(torrent.hash)
                     plan.torrent_paths.append(str(torrent_dir / tf.split("/")[0]))
                     break

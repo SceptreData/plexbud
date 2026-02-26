@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import httpx
 
@@ -20,12 +20,12 @@ class APIError(Exception):
 def parse_datetime(s: str) -> datetime:
     """Parse ISO 8601 datetime strings from Sonarr/Radarr APIs."""
     if not s:
-        return datetime(1970, 1, 1)
+        return datetime(1970, 1, 1, tzinfo=UTC)
     s = s.replace("Z", "+00:00")
     try:
         return datetime.fromisoformat(s)
     except ValueError:
-        return datetime(1970, 1, 1)
+        return datetime(1970, 1, 1, tzinfo=UTC)
 
 
 class BaseClient:

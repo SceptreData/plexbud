@@ -131,19 +131,19 @@ def _extract_external_ids(guid: str, guids: list[str]) -> list[int]:
     # Modern format: list of "provider://id" strings
     for g in guids:
         if isinstance(g, str):
-            match = re.match(r"(?:tvdb|tmdb|imdb)://(\d+)", g)
+            match = re.match(r"(?:tvdb|tmdb)://(\d+)", g)
             if match:
                 ids.append(int(match.group(1)))
         elif isinstance(g, dict):
             # Sometimes guids are dicts like {"id": "tvdb://12345"}
             gid = g.get("id", "")
-            match = re.match(r"(?:tvdb|tmdb|imdb)://(\d+)", gid)
+            match = re.match(r"(?:tvdb|tmdb)://(\d+)", gid)
             if match:
                 ids.append(int(match.group(1)))
 
     # Legacy format: agent string with embedded ID
     if guid:
-        match = re.search(r"(?:thetvdb|themoviedb|imdb)://(\d+)", guid)
+        match = re.search(r"(?:thetvdb|themoviedb)://(\d+)", guid)
         if match:
             ids.append(int(match.group(1)))
 

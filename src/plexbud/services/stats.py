@@ -5,7 +5,11 @@ from __future__ import annotations
 from plexbud.config import Config
 from plexbud.interfaces import TautulliAPI
 from plexbud.models import DeletionImpact, FileLocation, MediaItem, StatsRow
-from plexbud.services.hardlinks import calculate_deletion_impact, scan_file_locations
+from plexbud.services.hardlinks import (
+    build_inode_index,
+    calculate_deletion_impact,
+    scan_file_locations,
+)
 
 
 def build_stats_rows(
@@ -16,6 +20,9 @@ def build_stats_rows(
 ) -> list[StatsRow]:
     """Build StatsRow list from media items + Tautulli data."""
     rows: list[StatsRow] = []
+
+    # Pre-scan download roots once to avoid O(items * files) walks
+    download_index = build_inode_index(config.paths.torrents_root, config.paths.usenet_complete)
 
     for item in items:
         # Look up Plex rating_key via external ID
@@ -37,6 +44,7 @@ def build_stats_rows(
             item.path,
             torrents_root=config.paths.torrents_root,
             usenet_complete=config.paths.usenet_complete,
+            download_index=download_index,
         )
 
         # Calculate deletion impact

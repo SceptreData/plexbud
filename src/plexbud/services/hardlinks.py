@@ -35,16 +35,43 @@ def collect_inodes(path: str) -> set[tuple[int, int]]:
     return inodes
 
 
+def build_inode_index(*roots: str) -> dict[tuple[int, int], list[str]]:
+    """Walk roots once and build {(dev, ino): [path, ...]} index."""
+    index: dict[tuple[int, int], list[str]] = {}
+    for root in roots:
+        if not root:
+            continue
+        root_dir = Path(root)
+        if not root_dir.exists():
+            continue
+        for f in walk_files(root_dir):
+            try:
+                st = f.lstat()
+                index.setdefault((st.st_dev, st.st_ino), []).append(str(f))
+            except OSError:
+                continue
+    return index
+
+
+def _is_subpath(path: str, parent: str) -> bool:
+    """Check if path is under parent directory."""
+    return Path(path).resolve().is_relative_to(Path(parent).resolve())
+
+
 def scan_file_locations(
     media_path: str,
     *,
     torrents_root: str = "",
     usenet_complete: str = "",
+    download_index: dict[tuple[int, int], list[str]] | None = None,
 ) -> FileLocation:
     """Scan configured roots to find where a media item's files live.
 
     Given the media path (e.g. /volume1/data/media/tv/Show Name/), find
     matching files in torrent and usenet directories by comparing inodes.
+
+    When download_index is provided, uses it instead of re-walking the
+    download roots (much faster for multiple items).
     """
     location = FileLocation()
     media_dir = Path(media_path)
@@ -62,24 +89,33 @@ def scan_file_locations(
         except OSError:
             continue
 
-    # Scan download roots for matching inodes
-    scan_roots = [
-        (torrents_root, location.torrent_paths),
-        (usenet_complete, location.usenet_paths),
-    ]
-    for root, target_list in scan_roots:
-        if not root:
-            continue
-        root_dir = Path(root)
-        if not root_dir.exists():
-            continue
-        for f in walk_files(root_dir):
-            try:
-                st = f.lstat()
-                if (st.st_dev, st.st_ino) in media_inodes:
-                    target_list.append(str(f))
-            except OSError:
+    if download_index is not None:
+        # Use pre-built index for O(1) lookups
+        for ino in media_inodes:
+            for match_path in download_index.get(ino, []):
+                if torrents_root and _is_subpath(match_path, torrents_root):
+                    location.torrent_paths.append(match_path)
+                elif usenet_complete and _is_subpath(match_path, usenet_complete):
+                    location.usenet_paths.append(match_path)
+    else:
+        # Fallback: walk download roots directly
+        scan_roots = [
+            (torrents_root, location.torrent_paths),
+            (usenet_complete, location.usenet_paths),
+        ]
+        for root, target_list in scan_roots:
+            if not root:
                 continue
+            root_dir = Path(root)
+            if not root_dir.exists():
+                continue
+            for f in walk_files(root_dir):
+                try:
+                    st = f.lstat()
+                    if (st.st_dev, st.st_ino) in media_inodes:
+                        target_list.append(str(f))
+                except OSError:
+                    continue
 
     return location
 

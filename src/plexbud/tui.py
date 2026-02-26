@@ -60,6 +60,7 @@ class PlanScreen(Screen[bool]):
         self.plan = plan
         self._executed = False
         self._confirm_pending = False
+        self._deleting = False
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -89,8 +90,9 @@ class PlanScreen(Screen[bool]):
         self._confirm_pending = True
 
     def key_d(self) -> None:
-        if self._confirm_pending:
+        if self._confirm_pending and not self._deleting:
             self._confirm_pending = False
+            self._deleting = True
             self._do_delete()
 
     @work(thread=True)

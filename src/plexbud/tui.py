@@ -110,6 +110,11 @@ class PlanScreen(Screen[bool]):
         self._executed = True
         freed = self.plan.estimated_freed_bytes
 
+        for entry in log:
+            self.app.call_from_thread(
+                lambda e=entry: self.query_one("#status-text", Label).update(f"OK: {e}")
+            )
+
         def finish() -> None:
             app.session_reclaimed += freed
             app.disk_free += freed
@@ -122,10 +127,6 @@ class PlanScreen(Screen[bool]):
             self.dismiss(True)
 
         self.app.call_from_thread(finish)
-        for entry in log:
-            self.app.call_from_thread(
-                lambda e=entry: self.query_one("#status-text", Label).update(f"OK: {e}")
-            )
 
 
 class MainScreen(Screen[None]):

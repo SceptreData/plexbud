@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -123,9 +122,6 @@ def execute_deletion_plan(
             if p.is_file():
                 os.unlink(upath)
                 log.append(f"Deleted usenet file: {upath}")
-            elif p.is_dir():
-                shutil.rmtree(upath)
-                log.append(f"Deleted usenet directory: {upath}")
         except OSError as e:
             log.append(f"Failed to delete {upath}: {e}")
 

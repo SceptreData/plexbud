@@ -126,6 +126,26 @@ class TestBuildDeletionPlan:
 
     @patch("plexbud.services.deletion.collect_inodes", return_value=set())
     @patch("plexbud.services.deletion.scan_file_locations")
+    def test_plan_warns_on_tautulli_unreachable(
+        self,
+        mock_scan: MagicMock,
+        mock_inodes: MagicMock,
+    ) -> None:
+        mock_scan.return_value = FileLocation()
+        qbt = MagicMock()
+        qbt.get_torrents.return_value = []
+        tautulli = MagicMock()
+        tautulli.get_activity.side_effect = Exception("Connection refused")
+
+        item = _make_item()
+        item.path = "/nonexistent"
+
+        plan = build_deletion_plan(item, qbt=qbt, tautulli=tautulli, config=_mock_config())
+
+        assert any("Tautulli unreachable" in w for w in plan.warnings)
+
+    @patch("plexbud.services.deletion.collect_inodes", return_value=set())
+    @patch("plexbud.services.deletion.scan_file_locations")
     def test_plan_warns_on_active_stream(
         self,
         mock_scan: MagicMock,

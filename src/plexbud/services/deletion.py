@@ -7,9 +7,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import httpx
-
-from plexbud.clients.base import APIError
 from plexbud.config import Config
 from plexbud.interfaces import QBittorrentAPI, RadarrAPI, SonarrAPI, TautulliAPI
 from plexbud.models import DeletionPlan, MediaItem
@@ -157,8 +154,8 @@ def _check_warnings(
             if item.title in titles:
                 user = session.get("friendly_name", "someone")
                 warnings.append(f'Currently being streamed by user "{user}"')
-    except (APIError, httpx.HTTPError, OSError):
-        pass
+    except Exception:
+        warnings.append("Could not check active streams (Tautulli unreachable)")
 
     # Check if recently added (within 14 days)
     age = datetime.now().astimezone() - item.added.astimezone()
